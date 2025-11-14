@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notesy</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --grid-gap: 24px;
+            --grid-vertical-thickness: 18px; /* vertical lines (90deg) */
+            --grid-horizontal-thickness: 18px; /* horizontal lines (0deg) */
+            --grid-line-color: rgba(0,0,0,0.04);
+        }
+        body {
+            font-family: 'Comic Sans MS', 'Segoe Print', 'Bradley Hand', cursive, sans-serif;
+            background: linear-gradient(135deg, #f5f5f0 0%, #e8e8e0 100%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Textured Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent var(--grid-gap),
+                    var(--grid-line-color) var(--grid-gap),
+                    var(--grid-line-color) calc(var(--grid-gap) + var(--grid-horizontal-thickness))
+                ),
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent var(--grid-gap),
+                    var(--grid-line-color) var(--grid-gap),
+                    var(--grid-line-color) calc(var(--grid-gap) + var(--grid-vertical-thickness))
+                );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .search-bar input {
+            padding: 8px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            width: 200px;
+        }
+
+        .search-bar input:focus {
+            border-color: #ff9800;
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.2);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 2px solid transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            background: #f0f0f0;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .filter-btn.active {
+            border-color: #333;
+            transform: scale(1.05);
+        }
+
+        /* Notes Board */
+        .notes-board {
+            position: relative;
+            width: 100%;
+            min-height: calc(100vh - 120px);
+            margin-top: 100px;
+            padding: 20px;
+        }
+
+        /* Sticky Note */
+        .sticky-note {
+            position: absolute;
+            width: 220px;
+            min-height: 220px;
+            padding: 20px;
+            border-radius: 2px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            cursor: move;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+        }
+
+        .sticky-note::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            filter: brightness(0.98);
+            border-radius: inherit;
+            z-index: -1;
+        }
+
+        .sticky-note.yellow {
+            background-color: #f1c045;
+        }
+
+        .sticky-note.pink {
+            background-color: #ed7ba1 ;
+        }
+
+        .sticky-note.blue {
+            background-color: #5e657b;
+        }
+
+        .sticky-note.green {
+            background-color: #9bad50;
+        }
+
+        .sticky-note.lavender {
+            background-color: #857196;
+        }
+
+        .sticky-note:hover {
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+            animation: wobble 0.5s ease;
+        }
+
+        .sticky-note.dragging {
+            opacity: 0.8;
+            transform: scale(1.05) !important;
+            z-index: 1000;
+            cursor: grabbing !important;
+        }
+
+        @keyframes wobble {
+            0%, 100% { transform: rotate(var(--rotation)) scale(1); }
+            25% { transform: rotate(calc(var(--rotation) - 2deg)) scale(1.02); }
+            75% { transform: rotate(calc(var(--rotation) + 2deg)) scale(1.02); }
+        }
+
+        /* Note Header */
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 5px;
+        }
+
+        .note-icons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .category-select {
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 12px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            margin-right: 8px;
+        }
+
+        .note-icon {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            opacity: 0;
+        }
+
+        .sticky-note:hover .note-icon {
+            opacity: 1;
+        }
+
+        .note-icon:hover {
+            background: rgba(0, 0, 0, 0.2);
+            transform: scale(1.1);
+        }
+
+        .delete-btn {
+            color: #d32f2f;
+        }
+
+        .color-btn {
+            color: #333;
+        }
+
+        .reminder-btn {
+            color: #1976d2;
+            font-size: 16px;
+        }
+
+        .reminder-btn.active {
+            opacity: 1;
+            background: rgba(25, 118, 210, 0.2);
+        }
+
+        /* Note Content */
+        .note-content {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            color: #333;
+            width: 100%;
+        }
+
+        .note-content::placeholder {
+            color: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Note Footer */
+        .note-footer {
+            margin-top: 10px;
+            font-size: 10px;
+            color: rgba(0, 0, 0, 0.4);
+            text-align: right;
+        }
+
+        /* Add Note Button */
+        .add-note-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 25%;
+            border: none;
+            background: linear-gradient(135deg, #3a3042, #3a3042);
+            color: white;
+            font-size: 32px;
+            font-weight: 300;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+
+        .add-note-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.6);
+        }
+
+        .add-note-btn:active {
+            transform: scale(0.95) rotate(90deg);
+        }
+
+        /* Color Picker Modal */
+        .color-picker-modal {
+            position: fixed;
+            font-family: terminal grotesque;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            backdrop-filter: blur(5px);
+        }
+
+        .color-picker-modal.active {
+            display: flex;
+        }
+
+        .color-picker-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .color-picker-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .color-option {
+            width: 60px;
+            height: 60px;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+            border-color: #333;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Reminder Modal */
+        .reminder-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            backdrop-filter: blur(5px);
+        }
+
+        .reminder-modal.active {
+            display: flex;
+        }
+
+            .app-corner {
+                position: fixed;
+                top: 20px;
+                left: 25px;
+                z-index: 50;
+                font-family: terminal grotesque, monospace, Georgia, 'Times New Roman', Times, serif;
+                font-size: 25px;
+                font-weight: 590;
+                color: #44092e;
+                background: rgba(255,255,255,0.7);
+                padding: 0.1% 1%;
+                border-radius: 25px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                letter-spacing: 2px;
+            }
+        .reminder-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .reminder-content input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .reminder-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .reminder-buttons button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        #setReminderBtn {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+        }
+
+        #cancelReminderBtn {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .reminder-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .control-panel {
+                flex-direction: column;
+                width: 90%;
+                padding: 15px;
+            }
+
+            .search-bar input {
+                width: 100%;
+            }
+
+            .sticky-note {
+                width: 180px;
+                min-height: 180px;
+                padding: 15px;
+            }
+
+            .add-note-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 28px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .color-options {
+                flex-wrap: wrap;
+            }
+
+            .color-option {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sticky-note {
+                width: 150px;
+                min-height: 150px;
+                padding: 12px;
+                font-size: 12px;
+            }
+
+            .note-content {
+                font-size: 12px;
+            }
+
+            .filter-btn {
+                font-size: 10px;
+                padding: 5px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <div class="app-corner">notesy ꩜</div>
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="search your notes">
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-category="all">all</button>
+                <button class="filter-btn" data-category="personal" style="background: #f1c045;">personal</button>
+                <button class="filter-btn" data-category="ideas" style="background: #ed7ba1;">ideas</button>
+                <button class="filter-btn" data-category="work" style="background: #5e657b;">work</button>
+                <button class="filter-btn" data-category="reminders" style="background: #9bad50;">reminders</button>
+                <button class="filter-btn" data-category="misc" style="background: #857196;">misc</button>
+            </div>
+        </div>
+
+        <!-- Notes Board -->
+        <div class="notes-board" id="notesBoard"></div>
+
+        <!-- Add Note Button -->
+        <button class="add-note-btn" id="addNoteBtn">+</button>
+
+        <!-- Color Picker Modal -->
+        <div class="color-picker-modal" id="colorPickerModal">
+            <div class="color-picker-content">
+                <h3>choose your color</h3>
+                <div class="color-options">
+                    <button class="color-option" data-color="yellow" style="background: #f1c045;" title="Personal"></button>
+                    <button class="color-option" data-color="pink" style="background: #ed7ba1;" title="Ideas"></button>
+                    <button class="color-option" data-color="blue" style="background: #5e657b;" title="Work"></button>
+                    <button class="color-option" data-color="green" style="background: #9bad50;" title="Reminders"></button>
+                    <button class="color-option" data-color="lavender" style="background: #857196;" title="Miscellaneous"></button>
+                </div>
+                    <label for="categorySelect" style="display:block;margin-top:12px;font-size:13px;color:#333;">Category</label>
+                    <select id="categorySelect" style="margin-top:6px;padding:8px;border-radius:8px;border:1px solid #ddd;">
+                        <option value="personal">Personal</option>
+                        <option value="ideas">Ideas</option>
+                        <option value="work">Work</option>
+                        <option value="reminders">Reminders</option>
+                        <option value="misc">Misc</option>
+                    </select>
+            </div>
+        </div>
+
+        <!-- Reminder Modal -->
+        <div class="reminder-modal" id="reminderModal">
+            <div class="reminder-content">
+                <h3>Set Reminder</h3>
+                <input type="datetime-local" id="reminderInput">
+                <div class="reminder-buttons">
+                    <button id="setReminderBtn">Set</button>
+                    <button id="cancelReminderBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sticky Notes Application
+        class StickyNotesApp {
+            constructor() {
+                this.notes = [];
+                this.draggedNote = null;
+                this.currentNoteForReminder = null;
+                this.activeFilter = 'all';
+                this.searchQuery = '';
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadNotes();
+                this.checkReminders();
+                setInterval(() => this.checkReminders(), 60000);
+            }
+
+            setupEventListeners() {
+                document.getElementById('addNoteBtn').addEventListener('click', () => {
+                    this.showColorPicker();
+                });
+
+                document.querySelectorAll('.color-option').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const color = e.target.dataset.color;
+                        const categorySelect = document.getElementById('categorySelect');
+                        const category = categorySelect ? categorySelect.value : 'misc';
+                        this.createNote(color, category);
+                        this.hideColorPicker();
+                    });
+                });
+
+                document.getElementById('colorPickerModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'colorPickerModal') {
+                        this.hideColorPicker();
+                    }
+                });
+
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.searchQuery = e.target.value.toLowerCase();
+                    this.filterNotes();
+                });
+
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.activeFilter = e.target.dataset.category;
+                        this.filterNotes();
+                    });
+                });
+
+                document.getElementById('setReminderBtn').addEventListener('click', () => {
+                    this.setReminder();
+                });
+
+                document.getElementById('cancelReminderBtn').addEventListener('click', () => {
+                    this.hideReminderModal();
+                });
+
+                document.getElementById('reminderModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'reminderModal') {
+                        this.hideReminderModal();
+                    }
+                });
+            }
+
+            loadNotes() {
+                const savedNotes = localStorage.getItem('stickyNotes');
+                if (savedNotes) {
+                    this.notes = JSON.parse(savedNotes);
+                    // ensure older notes have category (default: misc)
+                    this.notes.forEach(n => { if (!n.category) n.category = 'misc'; });
+                    this.renderAllNotes();
+                }
+            }
+
+            saveNotes() {
+                localStorage.setItem('stickyNotes', JSON.stringify(this.notes));
+            }
+
+            createNote(color, category) {
+                const note = {
+                    id: `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    color: color,
+                    category: category || 'misc',
+                    content: '',
+                    x: Math.random() * (window.innerWidth - 300) + 50,
+                    y: Math.random() * (window.innerHeight - 400) + 200,
+                    rotation: Math.random() * 10 - 5,
+                    created: new Date().toISOString(),
+                    reminder: null
+                };
+
+                this.notes.push(note);
+                this.renderNote(note);
+                this.saveNotes();
+            }
+
+            renderNote(note) {
+                const noteElement = document.createElement('div');
+                noteElement.className = `sticky-note ${note.color}`;
+                noteElement.dataset.noteId = note.id;
+                noteElement.style.left = `${note.x}px`;
+                noteElement.style.top = `${note.y}px`;
+                noteElement.style.setProperty('--rotation', `${note.rotation}deg`);
+                noteElement.style.transform = `rotate(${note.rotation}deg)`;
+
+                const createdDate = new Date(note.created).toLocaleDateString();
+                const hasReminder = note.reminder ? 'active' : '';
+
+                noteElement.innerHTML = `
+                    <div class="note-header">
+                        <select class="category-select">
+                            <option value="personal" ${note.category === 'personal' ? 'selected' : ''}>Personal</option>
+                            <option value="ideas" ${note.category === 'ideas' ? 'selected' : ''}>Ideas</option>
+                            <option value="work" ${note.category === 'work' ? 'selected' : ''}>Work</option>
+                            <option value="reminders" ${note.category === 'reminders' ? 'selected' : ''}>Reminders</option>
+                            <option value="misc" ${note.category === 'misc' ? 'selected' : ''}>Misc</option>
+                        </select>
+                        <div class="note-icons">
+                            <button class="note-icon color-btn" title="Change color">🎨</button>
+                            <button class="note-icon reminder-btn ${hasReminder}" title="Set reminder">⏰</button>
+                            <button class="note-icon delete-btn" title="Delete">×</button>
+                        </div>
+                    </div>
+                    <textarea class="note-content" placeholder="Type something...">${note.content}</textarea>
+                    <div class="note-footer">${createdDate}</div>
+                `;
+
+                const textarea = noteElement.querySelector('.note-content');
+                const deleteBtn = noteElement.querySelector('.delete-btn');
+                const colorBtn = noteElement.querySelector('.color-btn');
+                const reminderBtn = noteElement.querySelector('.reminder-btn');
+                const categorySelect = noteElement.querySelector('.category-select');
+
+                textarea.addEventListener('input', (e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                    note.content = e.target.value;
+                    this.saveNotes();
+                });
+
+                deleteBtn.addEventListener('click', () => {
+                    this.deleteNote(note.id);
+                });
+
+                colorBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.changeNoteColor(note.id);
+                });
+
+                reminderBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.currentNoteForReminder = note.id;
+                    this.showReminderModal();
+                });
+
+                if (categorySelect) {
+                    categorySelect.addEventListener('change', (e) => {
+                        note.category = e.target.value;
+                        this.saveNotes();
+                        this.filterNotes();
+                    });
+                }
+
+                let isDragging = false;
+                let startX, startY, initialX, initialY;
+
+                noteElement.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
+                    
+                    isDragging = true;
+                    noteElement.classList.add('dragging');
+                    noteElement.style.zIndex = Date.now();
+                    
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    initialX = note.x;
+                    initialY = note.y;
+
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+
+                    note.x = initialX + dx;
+                    note.y = initialY + dy;
+
+                    noteElement.style.left = `${note.x}px`;
+                    noteElement.style.top = `${note.y}px`;
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        noteElement.classList.remove('dragging');
+                        this.saveNotes();
+                    }
+                });
+
+                noteElement.addEventListener('touchstart', (e) => {
+                    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
+                    
+                    isDragging = true;
+                    noteElement.classList.add('dragging');
+                    noteElement.style.zIndex = Date.now();
+                    
+                    const touch = e.touches[0];
+                    startX = touch.clientX;
+                    startY = touch.clientY;
+                    initialX = note.x;
+                    initialY = note.y;
+
+                    e.preventDefault();
+                });
+
+                document.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+
+                    const touch = e.touches[0];
+                    const dx = touch.clientX - startX;
+                    const dy = touch.clientY - startY;
+
+                    note.x = initialX + dx;
+                    note.y = initialY + dy;
+
+                    noteElement.style.left = `${note.x}px`;
+                    noteElement.style.top = `${note.y}px`;
+                });
+
+                document.addEventListener('touchend', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        noteElement.classList.remove('dragging');
+                        this.saveNotes();
+                    }
+                });
+
+                document.getElementById('notesBoard').appendChild(noteElement);
+            }
+
+            renderAllNotes() {
+                document.getElementById('notesBoard').innerHTML = '';
+                this.notes.forEach(note => this.renderNote(note));
+            }
+
+            deleteNote(noteId) {
+                this.notes = this.notes.filter(n => n.id !== noteId);
+                const noteElement = document.querySelector(`[data-note-id="${noteId}"]`);
+                if (noteElement) {
+                    noteElement.style.animation = 'wobble 0.3s ease';
+                    setTimeout(() => {
+                        noteElement.remove();
+                    }, 300);
+                }
+                this.saveNotes();
+            }
+
+            changeNoteColor(noteId) {
+                const note = this.notes.find(n => n.id === noteId);
+                if (!note) return;
+
+                const colors = ['yellow', 'pink', 'blue', 'green', 'lavender'];
+                const currentIndex = colors.indexOf(note.color);
+                const nextIndex = (currentIndex + 1) % colors.length;
+                note.color = colors[nextIndex];
+
+                const noteElement = document.querySelector(`[data-note-id="${noteId}"]`);
+                if (noteElement) {
+                    noteElement.className = `sticky-note ${note.color}`;
+                }
+
+                this.saveNotes();
+            }
+
+            filterNotes() {
+                const notes = document.querySelectorAll('.sticky-note');
+                
+                notes.forEach(noteElement => {
+                    const noteId = noteElement.dataset.noteId;
+                    const note = this.notes.find(n => n.id === noteId);
+                    
+                    if (!note) return;
+
+                    const matchesFilter = this.activeFilter === 'all' || note.category === this.activeFilter;
+                    const matchesSearch = !this.searchQuery || 
+                        note.content.toLowerCase().includes(this.searchQuery);
+
+                    if (matchesFilter && matchesSearch) {
+                        noteElement.style.display = 'flex';
+                    } else {
+                        noteElement.style.display = 'none';
+                    }
+                });
+            }
+
+            showColorPicker() {
+                document.getElementById('colorPickerModal').classList.add('active');
+            }
+
+            hideColorPicker() {
+                document.getElementById('colorPickerModal').classList.remove('active');
+            }
+
+            showReminderModal() {
+                document.getElementById('reminderModal').classList.add('active');
+                
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                document.getElementById('reminderInput').min = now.toISOString().slice(0, 16);
+            }
+
+            hideReminderModal() {
+                document.getElementById('reminderModal').classList.remove('active');
+                this.currentNoteForReminder = null;
+            }
+
+            setReminder() {
+                const reminderTime = document.getElementById('reminderInput').value;
+                if (!reminderTime || !this.currentNoteForReminder) return;
+
+                const note = this.notes.find(n => n.id === this.currentNoteForReminder);
+                if (note) {
+                    note.reminder = new Date(reminderTime).toISOString();
+                    
+                    const noteElement = document.querySelector(`[data-note-id="${note.id}"]`);
+                    if (noteElement) {
+                        noteElement.querySelector('.reminder-btn').classList.add('active');
+                    }
+                    
+                    this.saveNotes();
+                }
+
+                this.hideReminderModal();
+                document.getElementById('reminderInput').value = '';
+            }
+
+            checkReminders() {
+                const now = new Date();
+                
+                this.notes.forEach(note => {
+                    if (note.reminder) {
+                        const reminderTime = new Date(note.reminder);
+                        
+                        if (reminderTime <= now) {
+                            alert(`Reminder: ${note.content || 'You have a note reminder!'}`);
+                            
+                            note.reminder = null;
+                            
+                            const noteElement = document.querySelector(`[data-note-id="${note.id}"]`);
+                            if (noteElement) {
+                                noteElement.querySelector('.reminder-btn').classList.remove('active');
+                            }
+                            
+                            this.saveNotes();
+                        }
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new StickyNotesApp();
+        });
+    </script>
+</body>
+</html>
