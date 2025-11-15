@@ -450,44 +450,7 @@
         }
 
         /* Responsive Design */
-        /* Tablet & Medium Screens (768px - 1024px) */
-        @media (max-width: 1024px) {
-            .container {
-                padding: 15px;
-            }
-
-            .control-panel {
-                top: 15px;
-                left: 50%;
-                padding: 12px 20px;
-                gap: 15px;
-            }
-
-            .notes-board {
-                margin-top: 120px;
-                padding: 15px;
-            }
-
-            .sticky-note {
-                width: 200px;
-                min-height: 200px;
-                padding: 18px;
-                font-size: 13px;
-            }
-
-            .note-content {
-                font-size: 13px;
-            }
-
-            .app-corner {
-                font-size: 16px;
-                padding: 8px 8px;
-                top: 15px;
-                left: 15px;
-            }
-        }
-
-        /* Tablet Portrait & Small Devices (600px - 768px) */
+        /* Tablet Portrait (768px and below) */
         @media (max-width: 768px) {
             .container {
                 padding: 12px;
@@ -496,38 +459,46 @@
             .control-panel {
                 position: fixed;
                 top: 12px;
-                width: 95%;
+                width: calc(100% - 24px);
+                max-width: 95vw;
                 left: 50%;
                 transform: translateX(-50%);
                 flex-direction: column;
-                padding: 12px 15px;
-                gap: 12px;
+                padding: 10px 12px;
+                gap: 10px;
                 border-radius: 15px;
+                overflow-x: hidden;
+            }
+
+            .search-bar {
+                width: 100%;
             }
 
             .search-bar input {
                 width: 100%;
                 padding: 8px 12px;
                 font-size: 14px;
+                box-sizing: border-box;
             }
 
             .filter-buttons {
                 width: 100%;
                 gap: 6px;
                 justify-content: center;
+                overflow-x: auto;
+                padding: 4px 0;
             }
 
             .filter-btn {
                 padding: 6px 10px;
                 font-size: 11px;
-                flex: 1;
-                min-width: 60px;
+                flex-shrink: 0;
+                white-space: nowrap;
             }
 
             .notes-board {
                 margin-top: 140px;
                 padding: 12px;
-                min-height: calc(100vh - 160px);
             }
 
             .sticky-note {
@@ -540,11 +511,13 @@
             .note-header {
                 flex-wrap: wrap;
                 gap: 4px;
+                margin-bottom: 8px;
             }
 
             .category-select {
                 padding: 4px 6px;
                 font-size: 10px;
+                max-width: 100%;
             }
 
             .note-icons {
@@ -579,37 +552,22 @@
                 padding: 6px 8px;
                 top: 12px;
                 left: 12px;
-                border-radius: 8px;
-            }
-
-            .color-picker-modal {
-                padding: 20px;
             }
 
             .color-picker-content {
                 padding: 20px;
-                border-radius: 15px;
-            }
-
-            .color-picker-content h3 {
-                font-size: 16px;
-                margin-bottom: 15px;
+                max-width: 90vw;
             }
 
             .color-options {
                 gap: 12px;
                 flex-wrap: wrap;
+                justify-content: center;
             }
 
             .color-option {
                 width: 45px;
                 height: 45px;
-            }
-
-            #categorySelect {
-                width: 100%;
-                padding: 8px;
-                margin-top: 10px;
             }
         }
 
@@ -622,12 +580,14 @@
             .control-panel {
                 position: fixed;
                 top: 10px;
-                width: 96%;
+                width: calc(100% - 20px);
+                max-width: 100vw;
                 left: 50%;
                 transform: translateX(-50%);
-                padding: 10px 12px;
-                gap: 8px;
-                border-radius: 12px;
+                padding: 8px 10px;
+                gap: 6px;
+                border-radius: 10px;
+                overflow-x: hidden;
                 z-index: 100;
             }
 
@@ -637,29 +597,32 @@
 
             .search-bar input {
                 width: 100%;
-                padding: 7px 10px;
-                font-size: 13px;
+                padding: 6px 10px;
+                font-size: 12px;
+                box-sizing: border-box;
                 border-radius: 15px;
             }
 
             .filter-buttons {
                 width: 100%;
-                gap: 4px;
-                justify-content: space-between;
+                gap: 3px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                padding: 4px 0;
             }
 
             .filter-btn {
-                padding: 5px 8px;
-                font-size: 10px;
-                flex: 1;
-                min-width: 50px;
+                padding: 4px 8px;
+                font-size: 9px;
+                flex-shrink: 0;
                 white-space: nowrap;
+                border-radius: 15px;
             }
 
             .notes-board {
-                margin-top: 130px;
+                margin-top: 120px;
                 padding: 8px;
-                min-height: calc(100vh - 150px);
             }
 
             .sticky-note {
@@ -695,9 +658,8 @@
             }
 
             .note-content {
-                font-size: 11px;
+                font-size: 10px;
                 line-height: 1.3;
-                padding: 4px 0;
             }
 
             .note-footer {
@@ -715,21 +677,15 @@
 
             .app-corner {
                 font-size: 12px;
-                padding: 5px 6px;
+                padding: 4px 6px;
                 top: 10px;
                 left: 10px;
-                border-radius: 6px;
-                font-weight: 600;
-            }
-
-            .color-picker-modal {
-                padding: 10px;
             }
 
             .color-picker-content {
                 padding: 15px;
-                border-radius: 12px;
                 max-width: 95vw;
+                border-radius: 12px;
             }
 
             .color-picker-content h3 {
@@ -748,66 +704,41 @@
                 height: 40px;
             }
 
-            label[for="categorySelect"] {
-                font-size: 11px;
-            }
-
             #categorySelect {
                 width: 100%;
                 padding: 7px;
                 font-size: 12px;
-                margin-top: 8px;
-            }
-
-            .reminder-modal {
-                padding: 10px;
             }
 
             .reminder-content {
                 padding: 15px;
-                border-radius: 12px;
                 max-width: 95vw;
+                border-radius: 12px;
             }
 
             .reminder-content h3 {
                 font-size: 14px;
-                margin-bottom: 12px;
             }
 
             .reminder-content input {
+                width: 100%;
                 padding: 8px;
                 font-size: 12px;
-                margin-bottom: 12px;
-            }
-
-            .reminder-buttons button {
-                padding: 8px 15px;
-                font-size: 12px;
-                flex: 1;
+                box-sizing: border-box;
             }
         }
 
-        /* Extra Small Devices (below 360px) */
+        /* Extra Small Phones (360px and below) */
         @media (max-width: 360px) {
             .sticky-note {
                 width: 130px;
                 min-height: 130px;
                 padding: 10px;
-                font-size: 10px;
-            }
-
-            .note-content {
-                font-size: 10px;
             }
 
             .filter-btn {
-                font-size: 9px;
-                padding: 4px 6px;
-            }
-
-            .app-corner {
-                font-size: 11px;
-                padding: 4px 5px;
+                font-size: 8px;
+                padding: 3px 6px;
             }
         }
     </style>
